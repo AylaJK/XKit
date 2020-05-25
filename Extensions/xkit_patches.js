@@ -440,30 +440,85 @@ XKit.extensions.xkit_patches = new Object({
 			XKit.interface.sidebar = {
 				init: function() {
 					const html = `<div id="xkit_sidebar"></div>`;
-					const priority = [
-						$(".small_links"),
-						$("#dashboard_controls_open_blog"),
-						$(".controls_section.inbox"),
-						$(".sidebar_link.explore_link"),
-						$(".controls_section.recommended_tumblelogs"),
-						$("#tumblr_radar")
-					];
 
-					for (let section of priority) {
-						if (section.length) {
-							section.first().after(html);
-							break;
+					if (XKit.page.react) {
+						return XKit.tools.async_add_function(async () => {
+							/* globals tumblr */
+							return await tumblr.getCssMap();
+						})
+						.then(({exploreBtn, inbox, radar, recommendedBlogs, sidebar, sidebarItem}) => {
+							let priority = [];
+
+							//.small_links
+
+							//#dashboard_controls_open_blog
+
+							//.contorls_section.inbox
+							// Inbox not yet on React
+
+							//.sidebar_link.explore_link
+							exploreBtn.forEach(cssClassName => {
+								priority.push($(`.${cssClassName}`));
+							});
+
+							//.controls_section.recommended_tumblelogs
+							recommendedBlogs.forEach(cssClassName => {
+								priority.push($(`.${cssClassName}`));
+							});
+
+							//#tumbr_radar
+							radar.forEach(cssClassName => {
+								priority.push($(`.${cssClassName}`));
+							});
+
+							for (let section of priority) {
+								if (section.length) {
+									const parent = section.parent(`.${sidebarItem[0]}`);
+									if ( parent.length) {
+										parent.first().after(html);
+									} else {
+										section.first().after(html);
+									}
+									break;
+								}
+							}
+
+							if (!$("#xkit_sidebar").length) {
+								//#right_column
+								$(`.${sidebar[0]} asside`).append(html);
+							}
+
+							return Promise.resolve();
+						});
+					} else {
+
+						const priority = [
+							$(".small_links"),
+							$("#dashboard_controls_open_blog"),
+							$(".controls_section.inbox"),
+							$(".sidebar_link.explore_link"),
+							$(".controls_section.recommended_tumblelogs"),
+							$("#tumblr_radar")
+						];
+
+						for (let section of priority) {
+							if (section.length) {
+								section.first().after(html);
+								break;
+							}
 						}
-					}
-					if (!$("#xkit_sidebar").length) {
-						$("#right_column").append(html);
-					}
+						if (!$("#xkit_sidebar").length) {
+							$("#right_column").append(html);
+						}
 
-					XKit.tools.add_css(`
-						.controls_section.recommended_tumblelogs:not(:first-child) {
-							margin-top: 18px !important;
-						}`,
-					"sidebar_margins_fix");
+						XKit.tools.add_css(`
+							.controls_section.recommended_tumblelogs:not(:first-child) {
+								margin-top: 18px !important;
+							}`,
+						"sidebar_margins_fix");
+
+						return Promise.resolve();
+					}
 				},
 
 				/**
@@ -486,33 +541,73 @@ XKit.extensions.xkit_patches = new Object({
 					section.items = section.items || [];
 					section.small = section.small || [];
 
-					var html = `<ul id="${section.id}" class="controls_section">`;
-					if (section.title) {
-						html += `<li class="section_header">${section.title}</li>`;
-					}
-					for (let item of section.items) {
-						html += `
-							<li class="controls_section_item">
-								<a id="${item.id}" class="control-item control-anchor" style="cursor:pointer">
-									<div class="hide_overflow">
-										${item.text}
-										${(item.carrot ? '<i class="sub_control link_arrow icon_right icon_arrow_carrot_right"></i>' : "")}
-									</div>
-									<span class="count">${item.count || ""}</span>
-								</a>
-							</li>`;
-					}
-					html += "</ul>";
+					if (XKit.page.react) {
+						return XKit.tools.async_add_function(async () => {
+							/* globals tumblr */
+							return await tumblr.getCssMap();
+						})
+						.then(({sidebarTitle, sidebarItem, miniText}) => {
 
-					if (section.small.length !== 0) {
-						html += '<div class="small_links">';
-						for (let item of section.small) {
-							html += `<a id="${item.id}" style="cursor:pointer">${item.text}</a>`;
+							var html = `<div id="${section.id}" class="${sidebarItem}">`;
+							if (section.title) {
+								html += `<h1 class="${sidebarTitle}">${section.title}</h1>`;
+							}
+							html += "<ul>";
+							for (let item of section.items) {
+								html += `
+									<li class="controls_section_item">
+										<a id="${item.id}" class="control-item control-anchor" style="cursor:pointer">
+											<div class="hide_overflow">
+												${item.text}
+												${(item.carrot ? '<i class="sub_control link_arrow icon_right icon_arrow_carrot_right"></i>' : "")}
+											</div>
+											<span class="count">${item.count || ""}</span>
+										</a>
+									</li>`;
+							}
+							html += "</ul>";
+
+							if (section.small.length !== 0) {
+								html += '<div class="small_links">';
+								for (let item of section.small) {
+									html += `<a id="${item.id}" style="cursor:pointer">${item.text}</a>`;
+								}
+								html += "</div>";
+							}
+
+							html += "</div>";
+
+							return Promise.resolve(html);
+						});
+					} else {
+						var html = `<ul id="${section.id}" class="controls_section">`;
+						if (section.title) {
+							html += `<li class="section_header">${section.title}</li>`;
 						}
-						html += "</div>";
-					}
+						for (let item of section.items) {
+							html += `
+								<li class="controls_section_item">
+									<a id="${item.id}" class="control-item control-anchor" style="cursor:pointer">
+										<div class="hide_overflow">
+											${item.text}
+											${(item.carrot ? '<i class="sub_control link_arrow icon_right icon_arrow_carrot_right"></i>' : "")}
+										</div>
+										<span class="count">${item.count || ""}</span>
+									</a>
+								</li>`;
+						}
+						html += "</ul>";
 
-					return html;
+						if (section.small.length !== 0) {
+							html += '<div class="small_links">';
+							for (let item of section.small) {
+								html += `<a id="${item.id}" style="cursor:pointer">${item.text}</a>`;
+							}
+							html += "</div>";
+						}
+
+						return Promise.resolve(html);
+					}
 				},
 
 				/**
@@ -520,11 +615,19 @@ XKit.extensions.xkit_patches = new Object({
 				 * @param {Object} section - see construct's documentation
 				 */
 				add: function(section) {
-					if (!$("#xkit_sidebar").length) {
-						this.init();
-					}
-
-					$("#xkit_sidebar").append(this.construct(section));
+					new Promise((resolve) => {
+						if (!$("#xkit_sidebar").length) {
+							this.init().then(() => {
+								resolve();
+							});
+						} else {
+							resolve();
+						}
+					}).then(() => {
+						return this.construct(section);
+					}).then((html) => {
+						$("#xkit_sidebar").append(html);
+					});
 				},
 
 				remove: id => $(`#${id}, #${id} + .small_links`).remove()
