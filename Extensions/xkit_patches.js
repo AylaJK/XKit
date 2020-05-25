@@ -488,6 +488,50 @@ XKit.extensions.xkit_patches = new Object({
 								$(`.${sidebar[0]} asside`).append(html);
 							}
 
+							XKit.tools.add_css(`
+								.xkit_sidebar .xkit_sidebar_items {
+									padding: 0;
+									margin: 0;
+									width: 100%;
+									overflow-y: hidden;
+								}
+								.xkit_sidebar .xkit_sidebar_item_row {
+									display: flex;
+									align-items: center;
+									overflow-wrap: break-word;
+									word-wrap: break-word;
+									hyphens: auto;
+									line-height: 1.2;
+									vertical-align: middle;
+									text-decoration: none;
+									padding: 8px 10px;
+									min-height: 22px;
+									flex-grow: 1;
+								}
+								.xkit_sidebar .xkit_sidebar_item_row > span {
+									width : 100%;
+								}
+								.xkit_sidebar .xkit_sidebar_item_link {
+									text-decoration: none;
+								}
+								.xkit_sidebar .xkit_sidebar_item_text {
+									color: var(--transparent-white-65);
+								}
+								.xkit_sidebar .xkit_sidebar_item_link > div {
+									position: relative
+								}
+								.xkit_sidebar .xkit_sidebar_item_right {
+									position: absolute;
+									top: 50%;
+									transform: translateY(-50%);
+									right: 0;
+									text-align: right;
+									max-width: 25%;
+									margin-right: 14px;
+									color: var(--white-on-dark);
+								}`,
+							"sidebar_margins_fix");
+
 							return Promise.resolve();
 						});
 					} else {
@@ -546,36 +590,38 @@ XKit.extensions.xkit_patches = new Object({
 							/* globals tumblr */
 							return await tumblr.getCssMap();
 						})
-						.then(({sidebarTitle, sidebarItem, miniText}) => {
+						.then(({blogName, blogRowHolder, displayName, leftAlignedWrapper, sidebarTitle, sidebarItem, targetWrapper}) => {
 
-							var html = `<div id="${section.id}" class="${sidebarItem}">`;
+							section.items = section.items.concat(section.small);
+
+							var html = `<div id="${section.id}" class="${sidebarItem} xkit_sidebar">`;
 							if (section.title) {
 								html += `<h1 class="${sidebarTitle}">${section.title}</h1>`;
 							}
-							html += "<ul>";
+							html += `<ul class="xkit_sidebar_items">`;
 							for (let item of section.items) {
 								html += `
-									<li class="controls_section_item">
-										<a id="${item.id}" class="control-item control-anchor" style="cursor:pointer">
-											<div class="hide_overflow">
-												${item.text}
-												${(item.carrot ? '<i class="sub_control link_arrow icon_right icon_arrow_carrot_right"></i>' : "")}
-											</div>
-											<span class="count">${item.count || ""}</span>
-										</a>
+									<li class="${blogRowHolder.join(' ')}">
+										<div class="xkit_sidebar_item_row">
+											<span class="${targetWrapper.join(' ')}">
+												<a id="${item.id}" class="xkit_sidebar_item_link" style="cursor: pointer;">
+													<div class="${leftAlignedWrapper.join(' ')}">
+														<div class="${blogName.join(' ')}">
+															<span class="${displayName.join(' ')} xkit_sidebar_item_text">
+																${item.text}
+															</span>
+														</div>
+														<div class="xkit_sidebar_item_right">
+															${(item.count != null ? `<span class="count">${item.count}</span>` : item.carrot ? '<i class="carrot"></i>' : "")}
+														</div>
+													</div>
+												</a>
+											</span>
+										</div>
 									</li>`;
 							}
-							html += "</ul>";
-
-							if (section.small.length !== 0) {
-								html += '<div class="small_links">';
-								for (let item of section.small) {
-									html += `<a id="${item.id}" style="cursor:pointer">${item.text}</a>`;
-								}
-								html += "</div>";
-							}
-
-							html += "</div>";
+							html += `</ul>
+								</div>`;
 
 							return Promise.resolve(html);
 						});
@@ -613,9 +659,10 @@ XKit.extensions.xkit_patches = new Object({
 				/**
 				 * Shortcut command for constructing and applying controls sections
 				 * @param {Object} section - see construct's documentation
+				 * @returns {Promise} Promise object represents when the section has been added
 				 */
 				add: function(section) {
-					new Promise((resolve) => {
+					return new Promise((resolve) => {
 						if (!$("#xkit_sidebar").length) {
 							this.init().then(() => {
 								resolve();
@@ -626,7 +673,12 @@ XKit.extensions.xkit_patches = new Object({
 					}).then(() => {
 						return this.construct(section);
 					}).then((html) => {
-						$("#xkit_sidebar").append(html);
+						if (XKit.page.react) {
+							$("#xkit_sidebar").after(html);
+						} else {
+							$("#xkit_sidebar").append(html);
+						}
+						return Promise.resolve();
 					});
 				},
 
